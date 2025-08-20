@@ -1,0 +1,44 @@
+
+services:
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"    # Expõe a porta 6379 do Redis para acesso externo
+    command: ["redis-server", "--appendonly", "yes"]
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: testdb
+    ports:
+      - "5432:5432"   # Expõe a porta 5432 do PostgreSQL para acesso externo
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Script SQL inicial que será executado na criação do banco (somente leitura)
+  api:
+    build:
+      context: ./app  # Usa o Dockerfile localizado na pasta ./app
+    depends_on:
+      - redis         # Garante que Redis esteja disponível antes da API subir
+      - db            # Garante que PostgreSQL esteja disponível antes da API subir
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgresql://user:password@db:5432/testdb
+      - STREAM_NAME=wb:stream   # Nome do stream usado no Redis
+      - STREAM_GROUP=wb         # Nome do grupo de consumidores no Redis
+    ports: 
+      - "8000:8000"             # Expõe a API FastAPI na porta 8000
+  worker:
+    build:
+      context: ./worker     # Usa o Dockerfile localizado na pasta ./worker
+    depends_on:
+      - redis               # Garante que Redis esteja disponível antes do worker subir
+      - db                  # Garante que PostgreSQL esteja disponível antes do worker subir
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgresql://user:password@db:5432/testdb
+      - STREAM_NAME=wb:stream   # Nome do stream usado no Redis
+      - STREAM_GROUP=wb         # Nome do grupo de consumidores no Redis
