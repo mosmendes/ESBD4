@@ -10,7 +10,7 @@ engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 def write_to_db(key: str, value: str, version: int):
     with engine.begin() as conn:
-        # Only update if incoming version is newer or equal (last-write-wins)
+        # Atualizar somente se a versão recebida for mais recente ou igual (última gravação vence)
         conn.execute(
             text("""
                 INSERT INTO cache_data (key, value, version)

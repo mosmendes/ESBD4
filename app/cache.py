@@ -13,15 +13,16 @@ def _version_key(key: str) -> str:
     return f"ver:{key}"
 
 def set_write_back(key: str, value: str) -> int:
-    """Write-back: write to cache immediately and enqueue to stream for async persistence.
-    Returns the version used for this write.
     """
-    # Generate monotonic version per-key
+       Write-back: Grava no cache imediatamente e enfileira no fluxo para persistência assíncrona.
+       Retorna a versão usada para esta gravação.
+    """
+    # Gerar versão por chave
     version = r.incr(_version_key(key))
-    # Write to cache (value + version together for reads)
+    # Gravar no cache (valor + versão juntos para leituras)
     pipe = r.pipeline()
     pipe.hset(f"cache:{key}", mapping={"value": value, "version": version})
-    # Enqueue change to stream (for worker)
+    # Enfileirar alterações no fluxo (para o worker)
     pipe.xadd(STREAM_NAME, {"key": key, "value": value, "version": version, "ts": int(time.time() * 1000)})
     pipe.execute()
     return version
