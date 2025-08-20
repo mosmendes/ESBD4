@@ -10,9 +10,8 @@ Arquitetura:
 
 ## Como lidamos com concorrência e integridade
 
-- **Versão por chave (monotônica)**: cada escrita faz `INCR ver:{key}` e carrega `version` no evento e no cache.
-- **Coalescing no Worker**: ao consumir um lote, o worker só persiste a maior `version` por `key` (última escrita vence).
-- **UPSERT com guarda de versão**: `WHERE EXCLUDED.version >= cache_data.version` impede regressão no banco.
+- **Versão por chave **: cada escrita faz `INCR ver:{key}` e carrega `version` no evento e no cache.
+- **ConcorrÊncia no Worker**: ao consumir um lote, o worker só persiste a maior `version` por `key` (última escrita vence).
 - **Redis Streams + Consumer Group**: garante ordenação por stream e reprocessamento seguro em caso de falhas (pendentes).
 - **Separação API/Worker**: falhas no banco não afetam a latência de escrita da API.
 
