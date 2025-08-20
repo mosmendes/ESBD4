@@ -3,7 +3,7 @@
 
 Arquitetura:
 - **API (FastAPI)**: escreve no Redis (cache) e envia evento para um *Redis Stream* (write-back assíncrono).
-- **Worker**: consome o stream, faz *coalescing* por chave (última versão vence) e persiste no Postgres.
+- **Worker**: consome o stream, faz controle de concorrência por chave (última versão vence) e persiste no Postgres.
 - **Postgres**: armazena `key, value, version` com UPSERT protegido por versão (last-write-wins).
 - **Redis**: também mantém o valor + versão no cache (`HSET cache:{key}`) para leituras rápidas.
 
@@ -11,7 +11,7 @@ Arquitetura:
 ## Como lidamos com concorrência e integridade
 
 - **Versão por chave**: cada escrita faz `INCR ver:{key}` e carrega `version` no evento e no cache.
-- **ConcorrÊncia no Worker**: ao consumir um lote, o worker só persiste a maior `version` por `key` (última escrita vence).
+- **Concorrência no Worker**: ao consumir um lote, o worker só persiste a maior `version` por `key` (última escrita vence).
 - **Redis Streams + Consumer Group**: garante ordenação por stream e reprocessamento seguro em caso de falhas (pendentes).
 - **Separação API/Worker**: falhas no banco não afetam a latência de escrita da API.
 
